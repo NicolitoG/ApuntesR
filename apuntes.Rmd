@@ -1,0 +1,1160 @@
+---
+title: "Apuntes estadística inferencial"
+author: "Nicolas"
+date: "2024-11-10"
+output: html_document
+---
+
+```{r Librerias necesarias}
+#Librerias
+if(!require(dplyr)) install.packages("dplyr")
+if(!require(tidyr)) install.packages("tidyr")
+if(!require(ggplot2)) install.packages("ggplot2")
+if(!require(ggpubr)) install.packages("ggpubr")
+if(!require(ggmosaic)) install.packages("ggmosaic")
+if(!require(kableExtra)) install.packages("kableExtra")
+if(!require(ggpattern)) install.packages("ggpattern")
+if(!require(pwr)) install.packages("pwr")
+if(!require(tidyverse)) install.packages("tidyverse")
+if(!require(rcompanion)) install.packages("rcompanion")
+if(!require(RVAideMemoire)) install.packages("RVAideMemoire")
+if(!require(ez)) install.packages("ez")
+if(!require(nlme)) install.packages("nlme")
+if(!require(emmeans)) install.packages("emmeans")
+if(!require(TeachingDemos)) install.packages("TeachingDemos")
+if(!require(effsize)) install.packages("effsize")
+```
+
+===============================================================================================================
+LECTURA 1
+===============================================================================================================
+---------------------------------------------------------------------------------------------------------------
+CAPITULO 1: Introduccion
+---------------------------------------------------------------------------------------------------------------
+
+
+```{r Sentencias para importar conjuntos de datos}
+# Cargar un conjunto de datos disponible en R.
+datos1 <- mtcars
+# Importar desde un archivo de texto plano delimitado por tabuladores. 
+# datos2 <- read.delim (file.choose())
+# Importar desde un archivo de valores separados por coma en formato inglés (figura 1.2 b).
+datos3 <- read.csv("C:\\Inferencia \\ejemplo1-csv-eng.csv")
+# Configurar carpeta de trabajo 
+setwd ("C:\\Inferencia")
+# Importar desde un archivo de valores separados por coma en formato español (figura 1.2 c).
+datos4 <- read.csv2("ejemplo1-csv-esp.csv")
+# Mostrar las primeras 6 filas del conjunto de datos almacenado en datos1.
+head(datos1)
+# Mostrar las últimas 6 filas del conjunto de datos almacenado
+tail(datos1)
+```
+
+
+```{r Construir dataframe}
+# Crear un vector de strings y guardarlo en la variable nombre.
+nombre <- c("Alan Brito Delgado", "Zacarías Labarca del Río", "Elsa Payo Maduro")
+
+# Crear un vector de fechas y guardarlo en la variable fecha_nacimiento.
+fecha_nacimiento <- as.Date (c("2008-1-25", "2006-10-4", "2008-3-27"))
+
+# Crear tres vectores de reales entre 1.0 y 7.0 y guardarlos en prueba_i, respectivamente.
+prueba_1 <- c(5.5, 3.4, 4.5) 
+prueba_2 <- c(3.2, 4.7, 4.1)
+prueba_3 <- c(4.8, 4.3, 5.1)
+
+# Construir un data frame a partir de los vectores anteriores y # guardarlo en la variable dataframe.
+datos <- data.frame (nombre,
+                         fecha_nacimiento,
+                         prueba_1,
+                         prueba_2,
+                         prueba_3,
+                         stringsAsFactors = FALSE)
+# Guardar un dataframe en un archivo csv (formato español).
+#write.csv2(dataframe, "C:/Inferencia/Ejemplo.csv", row.names = FALSE)
+```
+
+
+
+```{r Modificaciones de una matriz de datos}
+# Leer un dataframe desde archivo CSV.
+#datos <- read.csv2 ("C:/ Inferencia/Ejemplo.csv", strings AsFactors = FALSE)
+
+# Eliminar del data frame la columna fecha_nacimiento.
+datos$fecha_nacimiento <- NULL
+
+# Agregar al data frame la columna edad.
+datos$edad <- c(23, 25, 23)
+
+#Crear una nueva observación.
+nueva <- data.frame (nombre = "Elba Calao del Río",
+                     prueba_1 = 6.4,
+                     prueba_2 = 2.3,
+                     prueba_3 = 4.6,
+                     edad = 24)
+
+# Agregar la nueva observación al data frame.
+datos <- rbind(datos, nueva)
+
+# Eliminar las primeras 3 observaciones del data frame.
+datos <- datos [-c(1:3),]
+
+# Guardar el dataframe en un archivo CSV.
+#write.csv2 (datos, "C:/Inferencia/Ejemplo_mod.csv", row.names = FALSE)
+```
+
+
+
+```{r Modificaciones de una matriz de datos con dplyr}
+# Cargar dataframe iris incluido en R.
+datos <- iris
+
+# Seleccionar observaciones correspondientes a la especie versicolor.
+versicolor <- datos %>% filter (Species == "versicolor")
+
+# Seleccionar observaciones de la especie versicolor cuyos sépalos tengan una longitud igual o superior a 6 cm.
+largas <- datos %>% filter (Species == "versicolor" & Sepal.Length >= 6)
+
+# Seleccionar la especie y variables relativas a los pétalos.
+petalos <- datos %>% select (Species, starts_with("Petal"))
+
+# Seleccionar variables de ancho y la especie.
+anchos <- datos %>% select (ends_with("Width"), Species)
+
+# Agregar al conjunto de datos de los pétalos una nueva variable con la razón entre el largo y el ancho de éstos.
+petalos <- petalos %>% mutate (Species, Petal.Width, Petal.Ratio = Petal.Length / Petal.Width)
+
+# Ordenar el conjunto de datos de pétalos en forma descendente según la razón de los pétalos.
+petalos <- petalos %>% arrange (desc (Petal.Ratio))
+
+# Ordenar el conjunto de datos de pétalos en forma ascendente según el largo de los pétalos.
+
+petalos <- petalos %>% arrange (Petal.Length)
+```
+
+
+
+```{r Modificaciones de una matriz de datos con tidyr (pivotar)}
+#Crear el data frame.
+Instancia <- 1:6
+Quicksort <- c(23.2, 22.6, 23.4, 23.3, 21.8, 23.9)
+Bubblesort <- c(31.6, 29.3, 30.7, 30.8, 29.8, 30.3)
+Radixsort <- c(30.1, 28.4, 28.7, 28.3, 29.9, 29.1)
+Mergesort <- c(25.0, 25.7, 25.7, 23.7, 25.5, 24.7)
+datos <- data.frame(Instancia, Quicksort, Bubblesort, Radixsort, Mergesort)
+
+# Mostrar las primeras filas de la matriz de datos.
+cat ("Datos originales\n")
+print (head (datos))
+cat ("\n")
+
+# Convertir la matriz de datos a formato largo.
+datos_largos <- datos %>% pivot_longer (c("Quicksort", "Bubblesort",
+                                          "Radixsort", "Mergesort"),
+                                        names_to= "Algoritmo",
+                                        values_to= "Tiempo")
+
+# Mostrar las primeras filas de la matriz de datos largos.
+cat ("Datos largos\n")
+print (head (datos_largos))
+cat ("\n")
+
+# Convertir la matriz de datos largos a formato ancho.
+datos_anchos <- datos_largos %>% pivot_wider (names_from= "Algoritmo",
+                                              values_from = "Tiempo")
+
+# Mostrar las primeras filas de la matriz de datos largos.
+cat ("Datos anchos \n")
+print (head (datos_anchos))
+cat ("\n")
+```
+
+
+
+```{r Modificacion del conjunto de datos mtcars para facilitar su comprensión.}
+# Cargar conjunto de datos.
+datos <- mtcars
+
+# Renombrar columnas.
+datos <- datos %>% rename (Rendimiento = mpg, Cilindrada = cyl,
+                           Desplazamiento = disp, Potencia = hp,
+                           Eje = drat, Peso = wt, Cuarto_milla = qsec,
+                           Motor = vs, Transmision = am, Cambios = gear,
+                           Carburadores = carb)
+
+# Dar formato categórico a las variables Motor y Transmision, renombrando sus niveles.
+datos [["Motor"]] <- factor (datos [["Motor"]], levels = c(0, 1),
+                             labels = c("V", "Recto"))
+
+datos [["Transmision"]] <- factor (datos [["Transmision"]],
+                                   levels =c(0,1),
+                                   labels = c("Automático", "Manual"))
+
+# Dar formato ordinal a las variables Cilindrada y Cambios, renombrando sus niveles.
+
+datos [["Cilindrada"]] <- factor (datos [["Cilindrada"]],
+                                   levels = c(4,6,8),
+                                   labels = c("4 cilindros",
+                                              "6 cilindros",
+                                              "8 cilindros"),
+                                   ordered = TRUE)
+
+datos [["Cambios"]] <- factor (datos [["Cambios"]],
+                               levels = c(3, 4, 5),
+                               labels=c("3 cambios",
+                                        "4 cambios",
+                                        "5 cambios"),
+                               ordered = TRUE)
+
+#write.csv2 (datos "C:/ Inferencia/Mtcars.csv")
+```
+
+---------------------------------------------------------------------------------------------------------------
+CAPITULO 2 Exploracion de datos
+---------------------------------------------------------------------------------------------------------------
+
+
+
+```{r Uso de las funciones mean() y sapply()}
+# Cargar conjunto de datos.
+# datos <- read.csv2("C:/Inferencia/Mtcars.csv", stringsAsFactors = TRUE, row.names = 1)
+
+# Calcular la media para la variable Rendimiento.
+media <- mean (datos [["Rendimiento"]])
+cat ("Rendimiento medio:", media, "\n\n")
+
+# Calcular la media para la tercera y quinta columnas
+# (variables Desplazamiento y Eje).
+cat ("Medias\n")
+print (sapply (datos [c (3, 5)], mean))
+cat ("\n")
+
+# Calcular la media para las columnas 3 a 6
+# (variables Desplazamiento, Potencia, Eje y Peso).
+cat ("Medias\n")
+print (sapply (datos [3:6], mean))
+cat("\n")
+
+# Calcular la media para la variable Rendimiento omitiendo valores faltantes. 
+print (mean (datos [["Rendimiento"]], na.rm = TRUE))
+```
+
+
+```{r Cálculo de cuantiles con la funcion quantile()}
+
+# Cargar conjunto de datos.
+#datos <- read.csv2 ("C:/ Inferencia/Mtcars.csv", stringsAsFactors = TRUE, row.names = 1)
+
+# Cálculo de percentiles para la variable Rendimiento.
+
+cat ("Cuartiles:\n")
+print (quantile(datos [["Rendimiento"]]))
+cat("\n")
+
+cat ("Quintiles:\n")
+print (quantile(datos [["Rendimiento"]], seq(0, 1, 0.2)))
+cat ("\n")
+
+cat ("Deciles:\n")
+print (quantile (datos [["Rendimiento"]], seq(0, 1, 0.1)))
+cat ("\n")
+
+cat ("Percentiles: \n")
+print(quantile(datos [["Rendimiento"]], seq(0, 1, 0.01)))
+
+```
+
+
+```{r Uso de la funcion summarize() del paquete dyplr}
+
+# Cálculo de varias medidas para la variable potencia.
+medidas_potencia <- datos %>% summarize(Media = mean(Potencia),
+                                        Mediana = median(Potencia),
+                                        Varianza = var(Potencia),
+                                        IQR = IQR(Potencia))
+print(medidas_potencia)
+cat("\n")
+
+# Cálculo de la media y la deviacion estandar para las variables Peso y cuarto _milla 
+medidas_varias <- datos %>% summarize(Media_P = mean(Peso),
+                                      Media_C = median(Cuarto_milla),
+                                      SD_P = sd(Peso),
+                                      SD_C = sd(Cuarto_milla))
+print (medidas_varias)
+cat("\n")
+```
+
+
+
+```{r tabla de contingencia para la variable Cambios}
+
+#Crear tabla de contingencia para la variable gear.
+contingencia <- table (datos [["Cambios "]])
+cat ("Tabla de contingencia generada con table():\n")
+print (contingencia)
+cat ("\n")
+
+# Otra forma de crear la misma tabla.
+contingencia <- xtabs (~ Cambios, data =datos)
+cat ("Tabla de contingencia generada con xtabs () : \n")
+print (contingencia)
+cat ("\n")
+
+#Calcular totales por fila y mostrarlos por separado.
+totales <- marginSums (contingencia)
+cat ("Totales por fila: \n")
+print (totales)
+cat ("\n")
+
+# Calcular totales por fila y agregarlos a la tabla.
+con_totales <- addmargins (contingencia, 1)
+cat ("Tabla de contingencia con totales por fila: \n")
+print (con_totales)
+cat ("\n")
+
+# Convertir a tabla de proporciones
+proporciones <- prop.table (contingencia)
+proporciones <- addmargins (proporciones, 1)
+cat ("Tabla de contingencia con proporciones: \n")
+print (proporciones)
+cat ("\n")
+
+# Convertir a tabla de porcentajes con 2 decimales.
+porcentajes <- round (prop.table (contingencia), 4) * 100
+porcentajes <- addmargins (porcentajes)
+cat ("Tabla de contingencia con porcentajes :\n")
+print (porcentajes)
+cat ("\n")
+
+```
+
+
+```{r tablas de contingencia y proporciones para dos variables}
+
+# Crear tabla de contingencia para las variables Transmision y gear.
+contingencia <- table (datos [["Transmision"]], datos [["Cambios"]])
+cat ("Tabla de contingencia generada con table():\n")
+print (contingencia)
+cat ("\n")
+
+# Otra forma de crear la misma tabla.
+contingencia <- xtabs (~ Transmision + Cambios, data = datos)
+cat ("Tabla de contingencia generada con xtabs (): \n")
+print (contingencia)
+cat ("\n")
+
+# Proporciones con totales por fila.
+proporciones_fila <- prop.table (contingencia, margin=1)
+proporciones_fila <- addmargins (proporciones_fila, margin=2)
+cat ("Tabla de contingencia con proporciones totales por fila: \n")
+print (proporciones_fila)
+cat("\n")
+
+# Proporciones con totales por columna.
+proporciones_columna <- prop.table (contingencia, margin=2)
+proporciones_columna <- addmargins (proporciones_columna, margin=1) 
+cat ("Tabla de contingencia con proporciones totales por columna: \n")
+print (proporciones_columna)
+cat ("\n")
+
+# Proporciones con totales
+proporciones <- prop.table(contingencia)
+proporciones <- addmargins(proporciones)
+cat("Tabla de contingencia con proporciones totales:\n")
+print(proporciones)
+cat("\n")
+```
+
+
+
+```{r Matriz de confusion para tres variables}
+
+# Convertir la variable Cambios en categórica.
+datos [["Cambios"]] <- factor (datos [["Cambios"]])
+# Crear tabla de contingencia para las variables Transmision, # Cambios y Motor.
+contingencia <- ftable(datos [["Transmision"]], datos [["Cambios"]], datos [["Motor"]])
+cat("Tabla de contingencia generada con ftable():\n")
+print(contingencia)
+cat ("\n")
+# Otra forma de crear la misma tabla.
+xtabs (~ Cambios + Transmision + Motor, data = datos)
+cat ("Tabla de contingencia generada con xtabs():\n")
+print (contingencia)
+cat("\n")
+```
+
+
+```{r Estadisticas descriptivas para datos agrupados}
+resumen <- group_by(datos, Cambios) %>%
+  summarise(count = n(), mean(Rendimiento), median(Rendimiento),
+            sd(Rendimiento), IQR(Rendimiento), mean(Potencia))
+print (resumen)
+```
+
+
+
+```{r Histogramas y graficos}
+
+# Histograma para la variable Rendimiento.
+g1 <- gghistogram (datos,
+                   x = "Rendimiento",
+                   bins = 10,
+                   add = "mean",
+                   xlab = "Rendimiento [Millas/galón]",
+                   ylab="Frecuencia",
+                   color = "blue",
+                   fill = "blue")
+
+print (g1)
+
+
+# Histograma para la variable Potencia.
+g2 <- gghistogram (datos, x = "Potencia",
+                   bins = 10,
+                   add = "mean",
+                   xlab = "Potencia [hp]",
+                   ylab="Frecuencia", color = "red",
+                   fill = "yellow")
+
+print (g2)
+
+#grafico de caja para la variable potencia
+g <- ggboxplot(datos[["Potencia"]],
+               color = "red",
+               fill = "pink",
+               ylab = "Potencia [hp]")
+
+g <- g + rremove("x.ticks")
+g <- g + rremove("x.text")
+g <- g + rremove("x.title")
+
+print(g)
+
+# Graficos de barras para la variable cambios
+# Crear la tabla de frecuencias para la variable Cambios y convertirla a data frame.
+
+
+contingencia <- as.data.frame (xtabs (~ Cambios, data = datos))
+
+# Crear el gráfico de barras.
+#g <- ggbarplot(contingencia,
+#               x = "Cambios",
+#               y = "Freq",
+#               fill = c("brown", "purple", "orange"),
+#               title="Cantidad de cambios de los automóviles",
+#               xlab = "Cantidad de cambios",
+#               ylab = "Frecuencia")
+
+#print(g)
+
+# Garfico de dispersion para las variables Rendimiento y peso
+g <- ggscatter (datos,
+                x = "Rendimiento",
+                y = "Peso",
+                color = "red",
+                title = "Rendimiento vs peso",
+                xlab = "Rendimiento[millas/galón]",
+                ylab = "Peso[1000lb]")
+print(g)
+
+```
+
+
+
+```{r Tipos de graficos de barras para variables}
+# Crear tabla de contingencia para las variables motor y cambios, y guardarla como data frame
+tabla <- xtabs (~ Motor + Cambios, data = datos) 
+contingencia <- as.data.frame (tabla)
+
+#Crear gráfico de barras segmentadas.
+g1 <- ggplot(contingencia, aes (fill= Motor, y= Freq, x = Cambios))
+g1 <- g1 + geom_bar (position = "stack", stat = "identity")
+g1 <- g1 + labs (y = "Frecuencia") + ggtitle("Barras apiladas")
+g1 <- g1 + theme_pubr()
+
+#Crear gráfico de barras agrupadas.
+g2 <- ggplot (contingencia, aes(fill = Motor, y = Freq, x = Cambios))
+g2 <- g2 + geom_bar (position = "dodge", stat = "identity")
+g2 <- g2 + labs (y = "Frecuencia") + ggtitle ("Barras agrupadas")
+g2 <- g2 + theme_pubr()
+
+# Crear gráfico de barras segmentadas estandarizado.
+g3 <- ggplot(contingencia, aes (fill = Motor, y = Freq, x = Cambios))
+g3 <- g3 + geom_bar (position = "fill", stat = "identity")
+g3 <- g3 + labs (y = "Frecuencia") + ggtitle ("Barras estandarizadas")
+g3 <- g3 + theme_pubr()
+
+# Crear una figura que contenga los tres gráficos.
+g <- ggarrange (g1, g2, g3, nrow=1, common.legend = TRUE)
+# Agregar un título común en negrita y con fuente de 24 puntos.
+titulo <- text_grob ("Tipo de motor por cantidad de Cambios",
+                     face = "bold", size = 24)
+g <- annotate_figure (g, top = titulo)
+
+# Guardar la figura en formato png con tamaño 960 x 480 pixeles.
+#ggexport (g, filename = "C:/ Inferencia/f-barras -2.png",
+#          height = 480,
+#          width= 960)
+```
+
+
+
+```{r Código para el gráfico de cajas por grupo}
+# Cargar la librería
+library(ggpubr)
+
+# Cargar los datos
+#datos <- read.csv("C:/Inferencia/Mtcars.csv", stringsAsFactors = TRUE, row.names = 1)
+
+# Crear el gráfico de cajas por grupo
+g <- ggboxplot(datos, 
+               x = "Cambios", 
+               y = "Rendimiento", 
+               palette = c("light blue", "pink", "yellow"), 
+               fill = "Cambios",
+               title = "Rendimiento por cantidad de cambios",
+               xlab = "Cambios",
+               ylab = "Rendimiento [millas/galón]")
+
+# Mostrar el gráfico
+print(g)
+
+```
+
+
+
+```{r Código para el gráfico de tiras}
+# Cargar la librería
+library(ggpubr)
+
+# Cargar los datos
+#datos <- read.csv("C:/Inferencia/Mtcars.csv", stringsAsFactors = TRUE, row.names = 1)
+
+# Crear el gráfico de tiras
+g <- ggstripchart(datos, 
+                  x = "Cambios", 
+                  y = "Rendimiento", 
+                  palette = c("blue", "red", "dark green"), 
+                  color = "Cambios",
+                  title = "Rendimiento por cantidad de cambios",
+                  xlab = "Cambios",
+                  ylab = "Rendimiento [millas/galón]")
+
+# Mostrar el gráfico
+print(g)
+
+```
+
+===============================================================================================================
+LECTURA 2
+===============================================================================================================
+---------------------------------------------------------------------------------------------------------------
+CAPITULO 4 Fundamentos para la inferencia
+---------------------------------------------------------------------------------------------------------------
+
+
+===============================================================================================================
+LECTURA 3
+===============================================================================================================
+---------------------------------------------------------------------------------------------------------------
+CAPITULO 5 Inferencia con medias muestrales
+---------------------------------------------------------------------------------------------------------------
+
+```{r Prueba z para una muestra}
+# Ingresar los datos
+muestra <- c(19.33, 29.37, 29.14, 32.10, 25.04, 22.22, 31.26, 26.92,
+             31.40, 17.66, 22.55, 20.69, 24.68, 28.74, 26.85, 29.68,
+             29.27, 26.72, 27.08, 20.62)
+
+# Establecer los datos conocidos
+desv.est <- 2.32
+n <- length(muestra)
+valor_nulo <- 20
+
+# Crear gráfico Q-Q para verificar la distribución de la muestra
+datos <- data.frame(muestra)
+g <- ggqqplot(datos, x = "muestra", color = "SteelBlue")
+print(g)
+
+# Verificar distribución muestral usando la prueba de normalidad de Shapiro-Wilk
+normalidad <- shapiro.test(muestra)
+print(normalidad)
+
+# Fijar un nivel de significación
+alfa <- 0.01
+
+# Calcular la media de la muestra
+cat("\tPrueba Z para una muestra\n\n")
+media <- mean(muestra)
+cat("Media =", media, "M$\n")
+
+# Calcular el estadístico de prueba
+Z <- (media - valor_nulo) / (desv.est / sqrt(n))
+cat("Z =", Z, "\n")
+
+# Calcular el valor p
+p <- 2 * pnorm(Z, lower.tail = FALSE)
+cat("p =", p, "\n")
+
+# Hacer la prueba Z con R
+# Una alternativa es usando la media muestral y el tamaño de la muestra
+prueba1 <- z.test(media, mu = valor_nulo, n = 20, alternative = "two.sided",
+                  stdev = desv.est, conf.level = 1 - alfa)
+print(prueba1)
+
+# Otra opción es usando la muestra directamente
+prueba2 <- z.test(muestra, mu = valor_nulo, alternative = "two.sided",
+                  stdev = desv.est, conf.level = 1 - alfa)
+print(prueba2)
+```
+
+
+```{r Prueba t para una muestra}
+# Cargar los datos
+tiempo <- c(411.5538, 393.2753, 445.8905, 411.4022, 498.8969,
+            388.6731, 430.0382, 469.4734, 409.5844, 442.0800,
+            418.1169, 408.4110, 463.3733, 407.0908, 516.5222)
+
+# Establecer los datos conocidos
+n <- length(tiempo)
+grados_libertad <- n - 1
+valor_nulo <- 500
+
+# Verificar si la distribución se acerca a la normal
+g <- ggqqplot(data = data.frame(tiempo), 
+              x = "tiempo", 
+              color = "steelblue",
+              xlab = "Teórico",
+              ylab = "Muestra",
+              title = "Gráfico Q-Q muestra v/s distr. normal")
+print(g)
+
+# Fijar un nivel de significación
+alfa <- 0.025
+
+# Calcular el estadístico de prueba
+cat("\tPrueba t para una muestra\n\n")
+media <- mean(tiempo)
+cat("Media =", media, "M$\n")
+desv_est <- sd(tiempo)
+error <- desv_est / sqrt(n)
+t <- (media - valor_nulo) / error
+cat("t =", t, "\n")
+
+# Calcular el valor p
+p <- pt(t, df = grados_libertad, lower.tail = TRUE)
+cat("p =", p, "\n")
+
+# Construir el intervalo de confianza
+t_critico <- qt(alfa, df = grados_libertad, lower.tail = FALSE)
+superior <- media + t_critico * error
+cat("Intervalo de confianza = (-Inf, ", superior, "]\n", sep = "")
+
+# Aplicar la prueba t de Student con la función de R
+prueba <- t.test(tiempo, 
+                 alternative = "less", 
+                 mu = valor_nulo, 
+                 conf.level = 1 - alfa)
+print(prueba)
+
+```
+
+```{r inferencia con la media de las diferencias entre dos muestras pareadas usando la distribución t}
+# Cargar los datos
+instancia <- seq(1, 35, 1)
+
+t_A <- c(436.5736, 470.7937, 445.8354, 470.9810, 485.9394,
+         464.6145, 466.2139, 468.9065, 473.8778, 413.0639,
+         484.1793, 502.9759, 465.6358, 437.6397, 458.8806,
+         450.1348, 430.0524, 438.5959, 439.7409, 454.6916,
+         467.9426, 415.3252, 495.4094, 493.7082, 453.2036,
+         447.7433, 515.2049, 441.9420, 472.1396, 451.2234,
+         476.5194, 440.7918, 460.1070, 450.1008)
+
+t_B <- c(408.5142, 450.1057, 490.2311, 513.6910, 467.6467,
+         484.1897, 465.9334, 502.6670, 444.9693, 456.3341,
+         501.1443, 471.8937, 441.1206, 544.1575, 447.8844,
+         458.4828, 458.2536, 474.9863, 496.0153, 485.8112,
+         457.4253, 483.3700, 510.7131, 467.5739, 482.5621,
+         453.5986, 385.9391, 548.7884, 467.2533, 494.7049,
+         451.9716, 522.3699, 444.1270)
+
+# Calcular la diferencia
+diferencia <- t_A - t_B
+
+# Verificar si la distribución se acerca a la normal
+normalidad <- shapiro.test(diferencia)
+print(normalidad)
+
+# Fijar un nivel de significación
+alfa <- 0.05
+
+# Aplicar la prueba t de Student a la diferencia de medias
+valor_nulo <- 0
+prueba_1 <- t.test(diferencia,
+                   alternative = "two.sided",
+                   mu = valor_nulo,
+                   conf.level = 1 - alfa)
+
+print(prueba_1)
+
+# Otra alternativa puede ser aplicar la prueba t de Student para dos muestras pareadas
+prueba_2 <- t.test(x = t_A,
+                   y = t_B,
+                   paired = TRUE,
+                   alternative = "two.sided",
+                   mu = valor_nulo,
+                   conf.level = 1 - alfa)
+
+print(prueba_2)
+
+```
+
+
+```{r Prueba t para muestras independientes}
+# Cargar los datos
+vacuna_A <- c(6.04, 19.84, 8.62, 13.02, 12.20, 14.78, 4.53, 26.67,
+              3.14, 19.14, 10.86, 13.13, 6.34, 11.16, 7.62)
+
+vacuna_B <- c(5.32, 3.31, 5.68, 5.73, 4.86, 5.68, 2.93, 5.48, 6.10,
+              2.56, 7.52, 7.41, 4.02)
+
+# Verificar si las muestras se distribuyen de manera cercana a la normal
+normalidad_A <- shapiro.test(vacuna_A)
+print(normalidad_A)
+
+normalidad_B <- shapiro.test(vacuna_B)
+print(normalidad_B)
+
+# Fijar un nivel de significación
+alfa <- 0.01
+
+# Aplicar la prueba t para dos muestras independientes
+prueba <- t.test(x = vacuna_A,
+                 y = vacuna_B,
+                 paired = FALSE,
+                 alternative = "greater",
+                 mu = 0,
+                 conf.level = 1 - alfa)
+
+print(prueba)
+
+# Calcular la diferencia entre las medias
+media_A <- mean(vacuna_A)
+media_B <- mean(vacuna_B)
+diferencia <- media_A - media_B
+cat("Diferencia de las medias =", diferencia, "[mg/ml]\n")
+
+```
+
+---------------------------------------------------------------------------------------------------------------
+CAPITULO 6 Inferencia con proporciones muestrales
+---------------------------------------------------------------------------------------------------------------
+
+```{r metodo de Wald para una proporcion}
+# Fijar valores conocidos
+n <- 150
+p_exito <- 0.64
+alfa <- 0.05
+valor_nulo <- 0.7
+
+# Construccion dek intevalo de confianza.
+error_est <- sqrt((p_exito * (1 - p_exito)) / n)
+Z_critico <- qnorm(alfa / 2, lower.tail = FALSE)
+inferior <- p_exito - Z_critico * error_est
+superior <- p_exito + Z_critico * error_est
+cat("Intervalo de confianza = [", inferior, ", ",superior, "]\n", sep = "")
+
+# Prueba de hipotesis.
+error_est_hip <- sqrt((valor_nulo * (1 - valor_nulo)) / n)
+Z <- (p_exito - valor_nulo) / error_est_hip
+p <- pnorm(Z, lower.tail = FALSE)
+cat ("Hipotesis alternativa unilateral \n")
+cat("Z = ", Z,  "\n")
+cat("p =", p)
+```
+
+
+```{r método de Wald para la diferencia entre dos proporciones}
+# Fijar valores conocidos
+n_hombres <- 48
+n_mujeres <- 42
+exitos_hombres <- 26
+exitos_mujeres <- 20
+alfa <- 0.05
+valor_nulo <- 0
+
+# Calcular probabilidades de éxito
+p_hombres <- exitos_hombres / n_hombres
+p_mujeres <- exitos_mujeres / n_mujeres
+
+# Estimar la diferencia
+diferencia <- p_hombres - p_mujeres
+
+# Construcción del intervalo de confianza
+error_hombres <- (p_hombres * (1 - p_hombres)) / n_hombres
+error_mujeres <- (p_mujeres * (1 - p_mujeres)) / n_mujeres
+error_est <- sqrt(error_hombres + error_mujeres)
+Z_critico <- qnorm(alfa / 2, lower.tail = FALSE)
+inferior <- diferencia - Z_critico * error_est
+superior <- diferencia + Z_critico * error_est
+cat("Intervalo de confianza = [", inferior, ", ", superior, "]\n", sep = "")
+
+# Prueba de hipótesis
+p_agrupada <- (exitos_hombres + exitos_mujeres) / (n_hombres + n_mujeres)
+error_hombres <- (p_agrupada * (1 - p_agrupada)) / n_hombres
+error_mujeres <- (p_agrupada * (1 - p_agrupada)) / n_mujeres
+error_est_hip <- sqrt(error_hombres + error_mujeres)
+Z <- (diferencia - valor_nulo) / error_est_hip
+p <- 2 * pnorm(Z, lower.tail = FALSE)
+cat("Hipótesis alternativa bilateral\n")
+cat("Z =", Z, "\n")
+cat("p =", p, "\n")
+
+```
+
+
+```{r Método de Wilson para una proporcion}
+# Fijar valores conocidos
+n <- 150
+p_exito <- 0.64
+alfa <- 0.05
+valor_nulo <- 0.7
+
+# Calcular cantidad de éxitos.
+exitos <- p_exito * n
+
+# Prueba de Wilson en R
+prueba <- prop.test(exitos, n = n, p = valor_nulo,
+                    alternative = "greater", conf.level = 1 - alfa)
+
+print(prueba)
+
+```
+
+```{r Método de Wilson para la diferencia entre dos proporciones}
+n <- c(48, 42)
+exitos <- c(26, 20)
+alfa <- 0.05
+
+# Prueba de Wilson en R
+prueba <- prop.test(exitos, n = n, alternative = "two.sided",
+                    conf.level = 1 - alfa)
+
+print(prueba)
+```
+
+===============================================================================================================
+LECTURA 4
+===============================================================================================================
+---------------------------------------------------------------------------------------------------------------
+CAPITULO 7
+---------------------------------------------------------------------------------------------------------------
+
+
+```{r Poder estadistico para una prueba Z bilateral}
+#Valores conocidos. 
+alfa <- 0.05
+n <- 36
+
+#Valores supuestos por Lola. 
+media_nula <- 60 
+sigma <- 12
+
+# Calcular el error estándar.
+SE <- sigma / sqrt(n)
+
+#Gráficar la distribución muestral de las medias si la hipótesis nula fuera verdadera.
+#Primero, el gráfico base
+g_x_limites <- media_nula + c(-6, 5) * SE
+g <- ggplot() + xlim (g_x_limites)
+g <- g + labs (x= "Tiempo de ejecución [s]", y= "Densidad")
+g <- g + labs (title="Distribución muestral de las medias")
+g <- g + theme_pubr()
+
+#Agregamos la hipótesis nula
+dist_0 <- stat_function(fun = dnorm,
+                        args = list(mean = media_nula, sd = SE),
+                        geom = "area",
+                        colour = "red", fill = "red", alpha = 0.1)
+                        
+g1 <- g + dist_0
+g1 <- g1 + geom_vline(xintercept = media_nula, colour="red")
+
+# Calcular las regiones críticas de la hipótesis nula.
+z_critico_inferior <- qnorm(alfa/2, mean = media_nula, sd = SE, lower.tail = TRUE)
+z_critico_superior <- qnorm(alfa/2, mean = media_nula, sd = SE, lower.tail = FALSE)
+
+# Colorear regiones de rechazo en el gráfico y el valor nulo.
+g2 <- g1 + stat_function(fun = dnorm,
+                         args = list(mean = media_nula, sd = SE),
+                         geom = "area",
+                         xlim = c(g_x_limites[1], z_critico_inferior), 
+                         fill = "red", alpha = 0.6)
+g2 <- g2 + stat_function(fun = dnorm,
+                         args = list(mean = media_nula, sd = SE),
+                         geom = "area",
+                         xlim = c(z_critico_superior, g_x_limites[2]), 
+                         fill = "red", alpha = 0.6)
+print(g2)
+
+# Valores vervaderos desconocidos por Lola.
+media_verdadera <- 55.8
+delta <- media_nula - media_verdadera
+
+# Agregar la verdadera distribución muestral de las medias. 
+dist_v <- stat_function (fun = dnorm,
+                       args = list(mean = media_verdadera, sd = SE),
+                       geom="area",
+                       colour="blue", fill = "blue", alpha = 0.1) 
+g3 <- g2+ dist_v + geom_vline (xintercept =media_verdadera, colour = "blue")
+
+# Agrega anotación del tamaño del efecto
+x_ann <- c(media_verdadera, media_nula)
+y_ann <- c(dnorm (media_verdadera, mean = media_verdadera, sd = SE), 
+           dnorm (media_nula, mean =media_nula, sd = SE))
+y_ann <- y_ann + 0.01
+g3 <- g3 + annotate("segment", x = x_ann[1], y = y_ann [1], 
+                    xend = x_ann[2], yend = y_ann[2],
+                    arrow = arrow(angle = 10, length = unit (0.03, "npc"), 
+                                  ends = "both", type = "open"))
+g3 <- g3 + annotate("text", x = sum (x_ann) / 2, y = y_ann[1] - 0.001, 
+                    label = "delta", vjust = "top", parse = TRUE)
+print(g3)
+
+# Traspasar las regiones críticas a la verdadera distribución muestral de las medias.
+g4 <- g + dist_0 + dist_v
+g4 <- g4 + stat_function(fun = dnorm,
+                         args = list(mean = media_verdadera, sd = SE),
+                         geom = "area",
+                         xlim = c(g_x_limites[1], z_critico_inferior),
+                         fill = "blue", alpha = 0.6)
+g4 <- g4 + stat_function(fun = dnorm,
+                         args = list(mean = media_verdadera, sd = SE),
+                         geom = "area",
+                         xlim = c(z_critico_superior, g_x_limites[2]),
+                         fill = "blue", alpha = 0.6)
+g4 <- g4 + stat_function(fun = dnorm,
+                         args = list(mean = media_verdadera, sd = SE),
+                         geom = "area_pattern",
+                         xlim = c(z_critico_inferior, z_critico_superior),
+                         fill = "white", colour = "blue", alpha = 0.3,
+                         pattern_spacing = 0.15, pattern_colour = "blue",
+                         pattern_fill = "blue", pattern_density = 0.4,
+                         pattern_angle = 45, pattern_alpha = 0.3)
+
+# Agrega anotación del poder
+g4 <- g4 + annotate("text", x = 50, y = 0.01, label = "poder[inf]", 
+                    parse = TRUE, vjust = "top")
+g4 <- g4 + annotate("text", x = 67, y = 0.04, label = "poder[sup]", 
+                    parse = TRUE, vjust = "top")
+g4 <- g4 + annotate("text", x = sum(x_ann) / 2, y = y_ann[1] - 0.01, 
+                    label = "beta", vjust = "top", parse = TRUE)
+g4 <- g4 + annotate("segment", x = 50, y = 0.087, rend = 52.5, yend = 0.02,
+                    arrow = arrow(angle = 10, length = unit(0.03, "npc"), 
+                                  ends = "last", type = "open"))
+g4 <- g4 + annotate("segment", x = sum(x_ann) / 2, y = y_ann[1] - 0.023, 
+                    xend = 57, yend = 0.10,
+                    arrow = arrow(angle = 10, length = unit(0.03, "npc"), 
+                                  ends = "last", type = "open"))
+print(g4)
+
+# Calcular el poder.
+poder_inf <- pnorm(z_critico_inferior, mean = media_verdadera, sd = SE, 
+                   lower.tail = TRUE)
+poder_sup <- pnorm(z_critico_superior, mean = media_verdadera, sd = SE, 
+                   lower.tail = FALSE)
+poder <- poder_inf + poder_sup
+cat("Poder = ", poder, "\n")
+
+# Calcular la probabilidad de cometer un error tipo II.
+beta <- 1 - poder
+cat("Beta = ", beta, "\n")
+```
+
+
+```{r Poder estadistico para prueba t bilateral ej 1}
+# Valores hipótesis.
+alfa <- 0.05
+n <- 36
+media_nula <- 60
+sigma <- 12
+
+# Tamaños del efecto.
+medias_verdaderas <- seq(50, 70, 0.01)
+deltas <- medias_verdaderas - media_nula
+deltas_norm <- deltas / sigma
+
+# Calcular poder de la prueba Z bilateral.
+f_b <- function(x) pwr.norm.test(x, n = n, sig.level = alfa, 
+                                 alternative = "two.sided")[["power"]]
+poder_bilat <- sapply(deltas_norm, f_b)
+
+# Calcular poder de la prueba Z con hipótesis alternativa unilateral tipo "less".
+f_u <- function(x) pwr.norm.test(x, n = n, sig.level = alfa, 
+                                 alternative = "less")[["power"]]
+poder_unilat <- sapply(deltas_norm, f_u)
+
+# Graficar estas curvas.
+datos_anchos <- data.frame(deltas, poder_bilat, poder_unilat)
+datos_largos <- datos_anchos %>% 
+  pivot_longer(cols = -deltas, names_to = "Tipo", values_to = "Poder")
+datos_largos[["Tipo"]] <- factor(datos_largos[["Tipo"]], 
+                                 labels = c("Bilateral", "Unilateral"))
+g <- ggline(datos_largos, x = "deltas", y = "Poder",
+            color = "Tipo", 
+            numeric.x.axis = TRUE, plot_type = "l")
+
+g <- g + labs(x = "Delta (s)")
+g <- g + labs(title = "Relación entre poder y tamaño del efecto")
+g <- ggpar(g, legend = c(.85, .35))
+print(g)
+```
+
+
+```{r Poder estadistico para prueba t bilateral ej 2}
+n <- 36
+media_nula <- 60 
+sigma <- 12
+
+# Tamaño del efecto.
+media_verdadera <- 55.8
+delta <- media_verdadera - media_nula 
+delta_norm <- delta / sigma
+
+# Niveles de significación
+alfas <- seq(0.001, 0.15, 0.001)
+
+# Calcular poder de la prueba Z bilateral.
+f_b <- function (x) pwr.norm.test(delta_norm, n = n, sig.level= x, 
+                                  alternative = "two.sided") [["power"]]
+poder_bilat <- sapply (alfas, f_b)
+
+# Calcular poder de la prueba Z con hipótesis
+# alternativa unilateral tipo "less".
+f_u <- function(x) pwr.norm.test(delta_norm, n = n, sig.level = x, 
+                                 alternative = "less")[["power"]]
+poder_unilat <- sapply (alfas, f_u)
+
+# Graficar estas curvas
+datos_anchos <- data.frame(alfas, poder_bilat, poder_unilat) 
+datos_largos <- datos_anchos %>%
+  pivot_longer(-alfas, names_to = "Tipo", values_to= "Poder")
+datos_largos[["Tipo"]] <- factor (datos_largos [["Tipo"]],
+                                  labels = c("Bilateral", "Unilateral"))
+g <- ggline (datos_largos, x = "alfas", y = "Poder",
+             color = "Tipo",
+             numeric.x.axis= TRUE, plot_type = "l")
+
+g <- g + labs (x = "Nivel de significación")
+g <- g + labs (title="Relación entre poder y nivel de significación") 
+g <- ggpar (g,legend = c(.85, .35))
+print(g)
+```
+
+
+```{r Poder estadistico para prueba t bilateral ej 3}
+# Valores hipótesis. 
+alfa <- 0.05 
+media_nula <- 60 
+sigma <- 12
+
+# Tamaño del efecto.
+media_verdadera <- 55.8
+delta <- media_verdadera - media_nula
+delta_norm <- delta / sigma
+
+#Tamaños de la muestra.
+ns <- seq(1, 130, 0.1)
+
+#Calcular poder de la prueba Z bilateral.
+f_b <- function (x) pwr.norm.test(delta_norm, n = x, sig.level = alfa, 
+                                  alternative = "two.sided") [["power"]]
+poder_bilat <- sapply (ns, f_b)
+
+# Calcular poder de la prueba Z con hipótesis
+# alternativa unilateral tipo "less".
+f_u <- function(x) pwr.norm.test(delta_norm, n = x, sig.level = alfa, 
+                                 alternative = "less") [["power"]]
+poder_unilat <- sapply(ns, f_u)
+
+# Graficar estas curvas
+datos_anchos <- data.frame(ns, poder_bilat, poder_unilat) 
+datos_largos <- datos_anchos %>% 
+  pivot_longer (-ns, names_to = "Tipo", values_to= "Poder") 
+datos_largos[["Tipo"]] <- factor(datos_largos[["Tipo"]],
+                                 labels=c("Bilateral", "Unilateral"))
+g <- ggline (datos_largos, x="ns", y = "Poder",
+             color = "Tipo",
+             numeric.x.axis = TRUE, plot_type="l")
+
+g <- g + labs(x="Tamaño de la muestra")
+g <- g + labs(title = "Relación entre poder y tamaño de la muestra") 
+g <- ggpar(g,legend = c(.85, .35))
+print(g)
+```
+
+
+```{r Calculo del tamaño (total) de las muestras requeridas en una prueba Z para dos muestras independientes}
+# Valores hipótesis.
+alfa <- 0.05
+poder <- 0.90
+
+# Valores L*.
+media_L <- 60
+sigma_L <- sqrt(144)
+
+# Valores M*.
+media_M <- 70
+sigma_M <- sqrt(196)
+
+# Tamaño del efecto.
+delta <- media_L - media_M
+sigma <- sqrt(2 * (sigma_L^2 + sigma_M^2))
+delta_norm <- delta / sigma
+
+# Tamaño total de la muestra
+factores <- pwr.norm.test(d = delta_norm, sig.level = alfa,
+                          power = poder, alternative = "less")
+print(factores)
+
+cat("Número total de observaciones:", ceiling(factores[["n"]]), "\n")
+```
+
+
+```{r calcular del poder en una prueba t unilateral para dos muestras independientes con diferentes tamaños}
+# Valores L*.
+muestra_L <- c(50916.01, 68274.39, 60212.33, 57973.14, 74787.28, 
+               61396.89, 72907.14, 55807.43, 61142.34, 61986.08, 
+               69704.93, 73718.12, 70488.12, 61836.25, 71255.53, 
+               61133.57, 57702.44, 79472.14, 69546.98, 56296.91, 
+               79657.66, 52530.76, 64012.86, 75995.01, 53014.13, 
+               69883.13, 62638.55, 87312.34, 47351.77, 66807.14) 
+n_L<- length(muestra_L)
+
+# Valores M.
+muestra_M <- c(95075.86, 64758.71, 80269.73, 74365.69, 86104.68, 
+               41772.91, 116915.74, 33103.66, 61553.61, 55498.1, 
+               73996.43, 101619.51, 61037.45, 53973.06, 65523.67, 
+               69378.84, 80254.29, 84242.37, 91978.80, 73853.76, 
+               98258.72, 61785.34, 59753.93, 66855.87, 101783.46)
+n_M <- length (muestra_M)
+
+# Obtener tamaño del efecto.
+tdf <- cohen.d(muestra_L, muestra_M)
+cat("Tamaño del efecto : \n")
+print(tdf)
+
+# Obtener poder de la prueba realizada.
+d <- tdf [["estimate"]]
+alfa <- 0.05
+valor_nulo <- 10
+factores <- pwr.t2n.test (n1 = n_L, n2= n_M, d = d, sig.level= alfa,
+                          alternative = "less")
+cat ("Factores::\n")
+print (factores)
+
+# Mostar beta
+cat("Beta: ", 1 - factores[["power"]], "\n")
+```
+
