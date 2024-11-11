@@ -1,0 +1,184 @@
+---
+title: "condiciones"
+author: "Nicolas"
+date: "2024-11-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+librerias:
+```{r}
+library('TeachingDemos')  # z.test, t.test
+library('RVAideMemoire')
+library('ez')
+library('DescTools')
+```
+
+
+## condiciones:
+
+# PARAMETRICA       - MEDIA
+===Z test===
+- observaciones independientes
+- si n >= 30 asumir sd muestral igual a poblacional
+  si n < 30 se debe conocer la sd poblacional
+- muestra pertenece a poblacion normal
+
+```{r}
+z.test(x, mu, stdev, alternative, conf.level)
+```
+x:            vector con observaciones de la muestra
+mu:           valor nulo
+stdev:        desviacion estandar de la poblacion
+alternative:  "two.sided", "less", "greater" (media de la poblacion mayor al valor nulo)
+conf.level:   nivel de confianza (1-alfa)
+
+===T test===
+- observaciones independientes
+- muestra pertenece a poblacion normal
+
+```{r}
+t.test(x, mu, alternative, conf.level)
+```
+
+===T test para 2 muestras correlacionales===
+- ambas muestras cumplen condiciones de T test
+
+```{r}
+t.test(x, y, paired=TRUE, mu, alternative, conf.level)
+```
+
+===T test para 2 muestras independientes===
+- ambas muestras cumplen condiciones de T test
+- muestras independientes
+
+```{r}
+t.test(x, y, paired=FALSE, mu, alternative, conf.level)
+```
+
+# PARAMETRICA       - PROPORCION
+===metodo de Wald===
+- observaciones de la muestra independientes
+- condicion de exito-fracaso: + de 10 exitos y + 10 fracasos observados en la muestra: n*p>=10 n(1-p)>=10
+
+===metodo de Wald para dos proporciones===
+- ambas muestras pertenecen a poblacion normal
+- muestras independientes entre si
+
+===metodo de Wilson===
+
+```{r}
+prop.test(x, n, p, alternative, conf.level)
+```
+x:            cantidad de exitos en la muestra
+n:            tamaño de la muestra
+p:            valor nulo (=NULL por defecto)
+alternative:  "two.sided", "less", "greater" (media de la poblacion mayor al valor nulo)
+conf.level:   nivel de confianza (0.95 por defecto)
+
+# NO PARAMETRICA    - PROPORCION
+===chi cuadrado de Pearson o de Asociacion===
+- observaciones independientes entre si
+- 5 o mas observaciones por grupo
+- una variable dicotomica
+
+```{r}
+chisq.test(tabla)
+```
+
+===prueba exacta de Fisher===
+- observaciones independientes
+- ambas variables dicotomicas
+
+```{r}
+fisher.test()
+```
+
+===prueba de McNemar===
+- ambas variables dicotomicas
+
+```{r}
+mcnemar.test()
+```
+
+===prueba Q de Cochran===
+- variable de respuesta es dicotomica
+- variable independiente es categorica
+- observaciones independientes
+- n*k >= 24   n: tamaño muestra   k: cantidad de niveles en variable independiente
+
+```{r}
+cochran.qtest(formula, data, alpha)
+```
+formula:      formula de la forma: respuesta ~ tratamientos | bloques
+data:         matriz de datos en formato largo
+alpha:        nivel de significancia
+
+# PARAMETRICA       - MEDIA       - >2 muestras independientes
+===ANOVA de una via para muestras independientes===
+- variable dependiente sigue una escala de intervalos iguales
+- las k muestras se obtienen de forma aleatoria e independiente
+- muestras provienen de poblacion normal
+- poblacion de las muestras tienen las mismas varianzas
+
+```{r}
+aov(formula, data)
+```
+
+```{r}
+ezANOVA(data, dv, wid, between, return_aov)
+```
+data:         data.frame con los datos
+dv:           variable independiente
+wid:          variable (factor) con el identificador de cada instancia
+between:      variable independiente (factor)
+return_aov:   si es verdadero retorna un objeto tipo aov para uso posterior
+
+
+```{r}
+# post-hoc
+TukeyHSD(x, which, ordered, conf.level)
+```
+x:            modelo ANOVA tipo aov
+which:        string con el nombre de la variable para la que se calculan las diferencias
+ordered:      si TRUE, diferencias positivas
+```{r}
+# post-hoc
+ScheffeTest(x, which, contrasts, conf.level)
+```
+contrasts:    matriz con los contrastes: contraste es una columna
+
+# PARAMETRICA       - MEDIA       - >2 muestras apareadas
+===ANOVA de una via para muestras correlacionadas===
+- variable dependiente sigue una escala de intervalos iguales
+- mediciones son independientes al interior de cada grupo
+- muestras provienen de poblacion normal
+- varianza entre diferentes niveles de medidas repetidas son iguales    -> prueba de esfericidad de Mauchly ezANOVA
+
+# NO PARAMETRICA    - MEDIA       - 2 muestras independientes
+===suma de rangos de Wilcoxon o U de Mann-Whitney===
+- muestras independientes
+- escala de mediciones por lo menos ordinal
+
+# NO PARAMETRICA    - MEDIA       - 2 muestras apareadas
+===prueba de rangos con signo de Wilcoxon===
+- pares de observaciones independientes
+- escala de mediciones por lo menos ordinal
+
+# NO PARAMETRICA    - MEDIA       - >2 muestras independientes
+===Kruskal-Wallis===
+- variable independiente debe tomar a lo menos 2 niveles
+- escala de variable dependiente a lo menos ordinal
+- observaciones independientes
+
+# NO PARAMETRICA    - MEDIA       - >2 muestras correlacionales
+===prueba de Friedman===
+- variable independiente categorica de al menos 3 niveles
+- escala de variable dependiente a lo menos ordinal
+- observaciones son una muestra aleatoria independiente de la poblacion
+
+
+
