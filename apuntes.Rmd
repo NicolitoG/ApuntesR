@@ -12,11 +12,10 @@ if(!require(tidyr)) install.packages("tidyr")
 if(!require(ggpubr)) install.packages("ggpubr")
 if(!require(ggplot2)) install.packages("ggplot2")
 if(!require(extraDistr)) install.packages("extraDistr")
-
-
 if(!require(ggmosaic)) install.packages("ggmosaic")
 if(!require(kableExtra)) install.packages("kableExtra")
 if(!require(ggpattern)) install.packages("ggpattern")
+if(!require(DescTools)) install.packages("DescTools")
 if(!require(pwr)) install.packages("pwr")
 if(!require(tidyverse)) install.packages("tidyverse")
 if(!require(rcompanion)) install.packages("rcompanion")
@@ -1481,5 +1480,800 @@ post_hoc_2 <- pairwiseMcnemar (resultado~ metaheuristica | instancia,
                                 data = datos, method = "holm")
 cat ("\nProcedimiento post-hoc con corrección de Holm\n")
 print (post_hoc_2)
+
+```
+
+===============================================================================================================
+LECTURA 6
+===============================================================================================================
+---------------------------------------------------------------------------------------------------------------
+CAPITULO 9 Anova de una vía para muestras independientes
+---------------------------------------------------------------------------------------------------------------
+
+```{r Procedimiento ANOVA de una vía para muestras independientes}
+# Crear el data frame en formato ancho.
+A <- c(23, 19, 25, 23, 20)
+B <- c(26, 24, 28, 23, 29)
+C <- c(19, 24, 20, 21, 17)
+
+datos <- data.frame(A, B, C)
+
+# Llevar data frame a formato largo.
+datos <- datos %>% pivot_longer(c("A", "B", "C"),
+                                 names_to = "algoritmo",
+                                 values_to = "tiempo")
+
+datos[["algoritmo"]] <- factor(datos [["algoritmo"]])
+datos[["instancia"]] <- factor(1: nrow (datos))
+
+# Comprobción de normalidad.
+g <- ggqqplot(datos,
+              x = "tiempo",
+              y = "algoritmo",
+              color = "algoritmo")
+
+g <- g + facet_wrap(~ algoritmo)
+g <- g + rremove("x.ticks") + rremove ("x.text")
+g <- g + rremove("y.ticks") + rremove ("y.text")
+g <- g + rremove("axis.title")
+print(g)
+
+# Procedimiento ANOVA con aov ().
+cat("Procedimiento ANOVA usando aov \n\n")
+prueba <- aov(tiempo ~ algoritmo, data = datos)
+print(summary(prueba))
+
+# Procedimiento ANOVA con ezANOVA() .
+cat ("\n\nProcedimiento ANOVA usando ezANOVA \n\n")
+prueba2 <- ezANOVA(data = datos,
+                   dv = tiempo,
+                   between = algoritmo,
+                   wid = instancia,
+                   return_aov = TRUE)
+print(prueba2)
+
+# Gráfico del tamaño del efecto.
+g2 <- ezPlot(data = datos,
+             dv = tiempo,
+             wid = instancia,
+             between = algoritmo,
+             y_lab = "Tiempo promedio de ejecución [ms]",
+             x = algoritmo)
+g2 <- g2 + theme_pubr()
+
+print(g2)
+```
+
+
+```{r Procedimientos post-hoc de Bonferroni y Holm en R}
+
+# Crear el data frame en formato ancho.
+A <- c(23, 19, 25, 23, 20)
+B <- c(26, 24, 28, 23, 29)
+C <- c(19, 24, 20, 21, 17)
+datos <- data.frame(A, B, C)
+
+# Llevar data frame a formato largo.
+datos <- datos %>% pivot_longer(c("A", "B", "C"),
+                                names_to = "algoritmo",
+                                values_to = "tiempo")
+
+datos[["algoritmo"]] <- factor(datos [["algoritmo"]])
+datos[["instancia"]] <- factor(1:nrow (datos) )
+
+# Establecer nivel de significación (el mismo usado en ANOVA) .
+alfa <- 0.025
+
+# Procedimiento post-hoc de Bonferroni.
+cat ("Procedimiento post-hoc de Bonferroni\n\n")
+bonferroni <- pairwise.t.test(datos[["tiempo"]],
+                              datos[["algoritmo"]],
+                              p.adj = "bonferroni",
+                              pool.sd = TRUE,
+                              paired = FALSE,
+                              conf.level = 1 - alfa)
+print (bonferroni)
+
+# Procedimiento post-hoc de Holm.
+cat ("\n\nProcedimiento post-hoc de Holm\n\n")
+holm <- pairwise.t.test(datos[["tiempo"]],
+                        datos[["algoritmo"]],
+                        p.adj = "holm",
+                        pool.sd = TRUE ,
+                        paired = FALSE,
+                        conf.level = 1 - alfa)
+print(holm)
+```
+
+
+```{r Procedimiento post-hoc de Tukey}
+
+# Crear el data frame en formato ancho.
+A <- c(23, 19, 25, 23, 20)
+B <- c(26, 24, 28, 23, 29)
+C <- c(19, 24, 20, 21, 17)
+datos <- data.frame(A, B, C)
+
+# Llevar data frame a formato largo.
+datos <- datos %>% pivot_longer(c("A", "B", "C"),
+                                names_to = "algoritmo",
+                                values_to = "tiempo")
+
+datos[["algoritmo"]] <- factor(datos [["algoritmo"]])
+datos[["instancia"]] <- factor(1:nrow (datos) )
+
+# Establecer nivel de significación (el mismo usado en ANOVA) .
+alfa <- 0.025
+
+# Procedimiento ANOVA.
+anova <- aov(tiempo ~ algoritmo, data = datos)
+
+# Prueba HSD de Tukey.
+post_hoc <- TukeyHSD(anova,
+                     "algoritmo",
+                     ordered = TRUE,
+                     conf.level = 1 - alfa)
+print(post_hoc)
+```
+
+
+```{r Prueba de comparación de Scheffé}
+
+# Crear el data frame en formato ancho.
+A <- c(23, 19, 25, 23, 20)
+B <- c(26, 24, 28, 23, 29)
+C <- c(19, 24, 20, 21, 17)
+datos <- data.frame (A, B, C)
+
+# Llevar data frame a formato largo.
+datos <- datos %>% pivot_longer(c("A", "B", "C"),
+                                names_to = "algoritmo",
+                                values_to = "tiempo")
+
+datos[["algoritmo"]] <- factor(datos[["algoritmo"]])
+datos[["instancia"]] <- factor(1:nrow(datos))
+
+# Establecer nivel de significación (el mismo usado en ANOVA) .
+alfa <- 0.025
+
+# Procedimiento ANOVA.
+anova <- aov(tiempo ~ algoritmo, data = datos)
+
+# Crear matriz de contrastes.
+contrastes <- matrix(c(1, -1, 0,
+                       1, 0, -1,
+                       0, 1, -1,
+                       1, -0.5, -0.5,
+                       -0.5, 1, -0.5,
+                       -0.5, -0.5, 1),
+                     nrow=6,
+                     byrow = TRUE)
+
+# Trasponer matriz de contrastes (para que cada contraste sea una columna).
+contrastes <- t(contrastes)
+
+# Hacer prueba de Scheffé.
+scheffe <- ScheffeTest(x = anova,
+                       which = "algoritmo",
+                       contrasts = contrastes,
+                       conf.level = 1 - alfa)
+print(scheffe)
+```
+
+===============================================================================================================
+LECTURA 7
+===============================================================================================================
+---------------------------------------------------------------------------------------------------------------
+CAPITULO 10 Anova de una vía para muestras correlacionadas
+---------------------------------------------------------------------------------------------------------------
+
+```{r Procedimiento ANOVA de una vía para muestras correlacionadas}
+
+# Crear el data frame.
+instancia <- factor(1:6)
+Quicksort <- c(23.2, 22.6, 23.4, 23.3, 21.8, 23.9)
+Bubblesort <- c(31.6, 29.3, 30.7, 30.8, 29.8, 30.3)
+Radixsort <- c(30.1, 28.4, 28.7, 28.3, 29.9, 29.1)
+Mergesort <- c(25.0, 25.7, 25.7, 23.7, 25.5, 24.7)
+datos <- data.frame(instancia, Quicksort, Bubblesort, Radixsort, Mergesort)
+
+# Llevar data frame a formato largo.
+datos <- datos %>% pivot_longer(c("Quicksort", "Bubblesort", "Radixsort",
+                                  "Mergesort"),
+                                names_to = "algoritmo",
+                                values_to = "tiempo")
+
+datos[["algoritmo"]] <- factor(datos[["algoritmo"]])
+
+# Comprobación de normalidad.
+g <- ggqqplot(datos, x = "tiempo", y = "algoritmo", color = "algoritmo")
+g <- g + facet_wrap(~ algoritmo)
+g <- g + rremove("x.ticks") + rremove("x.text")
+g <- g + rremove ("y.ticks") + rremove("y.text")
+g <- g + rremove("axis.title")
+print (g)
+
+# Procedimiento ANOVA con aov () .
+prueba <- aov (tiempo ~ algoritmo + Error(instancia/(algoritmo)),
+               data = datos)
+cat ("\nResultado de la prueba ANOVA para muestras correlacionadas con aov \n")
+print(summary(prueba))
+
+# Procedimiento ANOVA con ezANOVA () .
+prueba2 <- ezANOVA(data = datos,
+                   dv = tiempo,
+                   within = algoritmo,
+                   wid = instancia,
+                   return_aov = TRUE)
+cat ("\nResultado de la prueba ANOVA para muestras correlacionadas con ezANOVA\n")
+print(summary(prueba2[["aov"]]))
+
+# Pero ezANOVA entrega más información.
+cat("\nResultado de la prueba de esfericidad de Mauchly\n")
+print(prueba2[["Mauchly's Test for Sphericity"]])
+cat ("\nFactores de corrección para cuando no se ")
+cat ("cumple la condición de esfericidad\n")
+print(prueba2[["Sphericity Corrections"]])
+
+# Gráfico del tamaño del efecto.
+g2 <- ezPlot(data = datos,
+             dv = tiempo,
+             wid = instancia,
+             within = algoritmo,
+             y_lab = "Tiempo promedio de ejecución [ms]",
+             x = algoritmo)
+g2 <- g2 + theme_pubr()
+print(g2)
+```
+
+
+```{r Pruebas post-hoc para el ejemplo}
+
+# Crear el data frame.
+instancia <- factor (1:6)
+Quicksort <- c(23.2, 22.6, 23.4, 23.3, 21.8, 23.9)
+Bubblesort <- c(31.6, 29.3, 30.7, 30.8, 29.8, 30.3)
+Radixsort <- c(30.1, 28.4, 28.7, 28.3, 29.9, 29.1)
+Mergesort <- c(25.0, 25.7, 25.7, 23.7, 25.5, 24.7)
+datos <- data.frame(instancia, Quicksort, Bubblesort, Radixsort, Mergesort)
+
+# Levar data frame a formato largo.
+datos <- datos %>% pivot_longer (c("Quicksort", "Bubblesort", "Radixsort",
+                                   "Mergesort"),
+                                 names_to = "algoritmo",
+                                 values_to = "tiempo")
+
+datos[["algoritmo"]] <- factor(datos[["algoritmo"]])
+
+# Nivel de significación.
+alfa <- 0.01
+
+# Procedimiento ANOVA.
+anova <- ezANOVA(data = datos,
+                 dv = tiempo,
+                 within = algoritmo,
+                 wid = instancia,
+                 return_aov = TRUE)
+
+# Procedimiento post-hoc de Bonferroni.
+bonferroni <- pairwise.t.test(datos[["tiempo"]],
+                              datos[["algoritmo"]],
+                              p.adj = "bonferroni",
+                              paired = TRUE)
+cat ("Corrección de Bonferroni\n")
+print(bonferroni)
+
+# Procedimiento post-hoc de Holm.
+holm <- pairwise.t.test(datos[["tiempo"]],
+                        datos[["algoritmo"]],
+                        p.adj = "holm",
+                        paired = TRUE)
+cat ("\n\nCorrección de Holm\n")
+print(holm)
+
+# Procedimiento post-hoc HSD de Tukey.
+mixto <- lme(tiempo ~ algoritmo,
+             data = datos,
+             random = ~1| instancia)
+
+medias <- emmeans(mixto, "algoritmo")
+tukey <- pairs(medias, adjust = "tukey")
+cat("\n\nPrueba HSD de Tukey\n\n")
+print(tukey)
+
+# Procedimiento post-hoc de Scheffé
+cat("\n\nComparación de Scheffé\n")
+scheffe <- pairs(medias, adjust = "scheffe")
+print (scheffe)
+```
+
+
+===============================================================================================================
+LECTURA 8
+===============================================================================================================
+---------------------------------------------------------------------------------------------------------------
+CAPITULO 11 Métodos clásicos para enfrentar variables numéricas problemáticas (transformaciones de datos)
+---------------------------------------------------------------------------------------------------------------
+
+```{r Transformación lineal para convertir grados Celsius a grados Fahrenheit}
+# Crear un vector con cuatro observaciones en grados Celsius.
+Celsius <- c(-8, 0, 29.8, 100)
+
+# Aplicar transformación lineal para convertir a grados Fahrenheit.
+Fahrenheit <- 1.8 * Celsius + 32
+
+# Mostrar los resultados.
+cat ("Temperaturas en grados Celsius \n")
+print (Celsius)
+cat ("\nTemperaturas en grados Fahrenheit n")
+print (Fahrenheit)
+```
+
+
+```{r Transformación logarítmica}
+
+# Cargar datos
+animal <- c("Mountain beaver", "Cow", "Grey wolf", "Goat", "Guinea pig",
+            "Diplodocus", "Asian elephant", "Donkey", "Horse",
+            "Potar monkey", "Cat", "Giraffe", "Gorilla", "Human",
+            "African elephant", "Triceratops", "Rhesus monkey", "Kangaroo",
+            "Golden hamster", "Mouse", "Rabbit", "Sheep", "Jaguar",
+            "Chimpanzee", "Brachiosaurus", "Mole", "Pig")
+
+body_weight <- c(1.35, 465, 36.33, 27.66, 1.04, 11700, 2547, 187.1, 521, 10,
+                  3.3, 529, 207, 62, 6654, 9400, 6.8, 35, 0.12, 0.023, 2.5,
+                  55.5, 100, 52.16, 87000, 0.122, 192)
+
+brain_weight <- c (465, 423, 119.5, 115, 5.5, 50, 4603, 419, 655, 115, 25.6,
+                   680, 406, 1320, 5712, 70, 179, 56, 1, 0.4, 12.1, 175, 157,
+                   440, 154.5, 3, 180)
+
+datos <- data.frame(animal, body_weight, brain_weight)
+
+# Aplicar transformación logarítmica
+log_cuerpo <- log(body_weight)
+log_cerebro <- log(brain_weight)
+datos <- data.frame(datos, log_cuerpo, log_cerebro)
+
+# Histogramas para el peso cerebral antes y después de la transformación
+# logarítmica.
+g3 <- gghistogram(datos,
+                  x = "brain_weight",
+                  bins = 10,
+                  xlab = "Peso del cerebro [g]",
+                  ylab = "Frecuencia",
+                  color = "red",
+                  fill = "red")
+
+g4 <- gghistogram(datos,
+                  x = "log_cerebro",
+                  bins = 10,
+                  xlab = "Peso del cerebro [log (g)]",
+                  ylab = "Frecuencia",
+                  color = "red",
+                  fill = "red")
+
+# Crear una única figura con ambos histogramas.
+histograma <- ggarrange (g3, g4, ncol = 2, nrow = 1)
+titulo <- text_grob ("Efecto de la transformación logarítmica",
+                     face = "bold", size = 14)
+histograma <- annotate_figure(histograma, top = titulo)
+print(histograma)
+
+# Gráficos de dispersión para la relación entre peso corporal y peso del
+# cerebro, antes y después de aplicar la transformación logarítmica.
+g1 <- ggscatter(datos,
+                x = "body_weight",
+                y = "brain_weight",
+                color = "red",
+                xlab = "Peso corporal (Kg]",
+                ylab = "Peso del cerebro [g]") + rotate_x_text(45)
+
+g2 <- ggscatter(datos,
+                x = "log_cuerpo",
+                y = "log_cerebro",
+                color = "red",
+                xlab = "Peso corporal [log (Kg)]",
+                ylab = "Peso del cerebrp [log(g)]") + rotate_x_text(45)
+
+# Crear una única figura con los gráficos de dispersión.
+dispersion <- ggarrange (g1, g2, ncol = 2, nrow = 1)
+texto <- "Relación entre el peso corporal y el peso del cerebro"
+titulo <- text_grob(texto, face = "bold", size = 14)
+dispersion <- annotate_figure(dispersion, top = titulo)
+print(dispersion)
+```
+
+
+```{r Transformación de Tukey para la población total de Estados Unidos}
+
+# Cargar datos
+Year <- c(1610, 1620, 1630, 1640, 1650, 1660, 1670, 1680, 1690, 1700, 1710,
+          1720, 1730, 1740, 1750, 1760, 1770, 1780, 1790, 1800, 1810, 1820,
+          1830, 1840, 1850)
+
+Population <- c(0.00035, 0.002302, 0.004646, 0.026634, 0.050368, 0.075058,
+                0.111935, 0.151507, 0.210372, 0.250888, 0.331711, 0.466185,
+                0.629445, 0.905563, 1.17076, 1.593625, 2.148076, 2.780369,
+                3.929214, 5.308483, 7.239881, 9.638453, 12.86602, 17.069453,
+                23.191876)
+
+datos <- data.frame(Year, Population)
+
+# Gráfico de dispersión e histograma.
+g1 <- gghistogram(datos,
+                  x = "Population",
+                  bins = 10,
+                  xlab = "Población (millones)",
+                  ylab = "Frecuencia",
+                  color = "blue",
+                  fill = "blue")
+
+g2 <- ggscatter(datos,
+                x = "Year",
+                y = "Population",
+                color = "blue",
+                xlab = "Año",
+                ylab = "Población (millones)")
+
+# Histograma de la población y población por año
+original <- ggarrange(g1, g2, ncol = 2, nrow = 1)
+texto <- "Histograma de la población y población por año"
+titulo <- text_grob(texto, face = "bold", size = 14)
+original <- annotate_figure(original, top = titulo)
+print(original)
+
+# Transformaciones de la población
+lambda_menos_dos <- -1 / (datos$Population ** 2)
+lambda_menos_uno <- -1 / datos$Population
+lambda_menos_un_medio <- -1 / sqrt (datos$Population)
+lambda_cero <- log(datos$Population)
+lambda_un_medio <- sqrt(datos$Population)
+lambda_dos <- datos$Population ** 2
+
+transformaciones <- data.frame(datos,
+                               lambda_menos_dos,
+                               lambda_menos_uno,
+                               lambda_menos_un_medio,
+                               lambda_cero,
+                               lambda_un_medio,
+                               lambda_dos)
+
+# Gráficos de dispersión para la transformación de Tukey de la población y el
+# año, usando distintos valores de lambda.
+gt1 <- ggscatter(transformaciones,
+                 x = "Year",
+                 y = "lambda_menos_dos" ,
+                 color = "blue",
+                 xlab = "Año",
+                 ylab = "lambda = -2") + rotate_x_text (45)
+
+gt2 <- ggscatter(transformaciones,
+                 x = "Year",
+                 y = "lambda_menos_uno",
+                 color = "blue",
+                 xlab = "Año",
+                 ylab = "lambda = -1") + rotate_x_text (45)
+
+gt3 <- ggscatter(transformaciones,
+                 x = "Year",
+                 y = "lambda_menos_un_medio",
+                 color = "blue",
+                 xlab = "Año",
+                 ylab = "lambda = -1/2") + rotate_x_text (45)
+
+gt4 <- ggscatter(transformaciones,
+                 x = "Year",
+                 y = "lambda_cero",
+                 color = "blue",
+                 xlab = "Año",
+                 ylab = "lambda = 0") + rotate_x_text (45)
+
+gt5 <- ggscatter(transformaciones,
+                 x = "Year",
+                 y = "lambda_un_medio",
+                 color = "blue",
+                 xlab = "Año",
+                 ylab = "lambda = 1/2") + rotate_x_text (45)
+
+gt6 <- ggscatter(transformaciones,
+                 x = "Year",
+                 y = "lambda_dos",
+                 color = "blue",
+                 xlab = "Año",
+                 ylab = "lambda = 2") + rotate_x_text (45)
+
+# Crear una única figura con todos los gráficos de dispersión.
+dispersion <- ggarrange(gt1, gt2, gt3, gt4, gt5, gt6, ncol = 3, nrow = 2)
+texto <- "Poblacion transformada por año"
+titulo <- text_grob(texto, face = "bold", size = 14)
+dispersion <- annotate_figure(dispersion, top = titulo)
+print(dispersion)
+
+# Histogramas para la transformación de Tukey de la población y el año,
+# usando distintos valores de lambda.
+h1 <- gghistogram(transformaciones,
+                  bins = 10,
+                  x = "lambda_menos_dos",
+                  color = "blue",
+                  fill = "blue",
+                  xlab = "lambda = -2") + rotate_x_text (45)
+
+h2 <- gghistogram(transformaciones,
+                  bins = 10,
+                  x = "lambda_menos_uno",
+                  color = "blue",
+                  fill = "blue",
+                  xlab = "lambda = -1") + rotate_x_text (45)
+
+h3 <- gghistogram(transformaciones,
+                  bins = 10,
+                  x = "lambda_menos_un_medio",
+                  color = "blue",
+                  fill = "blue",
+                  xlab = "lambda = -1/2") + rotate_x_text (45)
+
+h4 <- gghistogram(transformaciones,
+                  bins = 10,
+                  x = "lambda_cero",
+                  color = "blue",
+                  fill = "blue",
+                  xlab = "lambda = 0") + rotate_x_text (45)
+
+h5 <- gghistogram(transformaciones,
+                  bins = 10,
+                  x = "lambda_un_medio",
+                  color = "blue",
+                  fill = "blue",
+                  xlab = "lambda = 1/2") + rotate_x_text (45)
+
+h6 <- gghistogram(transformaciones,
+                  bins = 10,
+                  x = "lambda_dos",
+                  color = "blue",
+                  fill = "blue",
+                  xlab = "lambda = 2") + rotate_x_text (45)
+
+# Crear una única figura con todos los gráficos de dispersión.
+histograma <- ggarrange (h1, h2, h3, h4, h5, h6, ncol = 3, nrow = 2)
+texto <- "Histogramas de la población transformada"
+titulo <- text_grob (texto, face = "bold", size = 14)
+histograma <- annotate_figure(histograma, top = titulo)
+print (histograma)
+
+# Buscar la mejor transformación de Tukey usando una función de R.
+transformacion <- transformTukey(datos$Population,
+                                 start = -4,
+                                 end = 4,
+                                 int = 0.001,
+                                 returnLambda = TRUE)
+```
+
+
+```{r La transformación de Box-Cox para la población total de Estados Unidos}
+
+# Cargar datos
+Year <- c(1610, 1620, 1630, 1640, 1650, 1660, 1670, 1680, 1690, 1700, 1710,
+          1720, 1730, 1740, 1750, 1760, 1770, 1780, 1790, 1800, 1810, 1820,
+          1830, 1840, 1850)
+
+Population <- c(0.00035, 0.002302, 0.004646, 0.026634, 0.050368, 0.075058,
+                0.111935, 0.151507, 0.210372, 0.250888, 0.331711, 0.466185,
+                0.629445, 0.905563, 1.17076, 1.593625, 2.148076, 2.780369,
+                3.929214, 5.308483, 7.239881, 9.638453, 12.86602, 17.069453,
+                23.191876)
+
+datos <- data.frame(Year, Population)
+
+# Transformación de Box -cox
+box_cox <- function(x, lambda) {
+  if (lambda == 0) {
+    return (log(x))
+  }
+  resultado <- (x ** lambda -1) / lambda
+  return (resultado)
+}
+
+# Transformaciones de la población
+lambda_menos_dos <- box_cox(datos$Population, -2)
+lambda_menos_uno <- box_cox (datos$Population, -1)
+lambda_cero <- box_cox(datos$Population, 0)
+lambda_uno <- box_cox(datos$Population, 1)
+lambda_dos <- box_cox (datos$Population, 2)
+
+transformaciones <- data.frame(datos,
+                               lambda_menos_dos,
+                               lambda_menos_uno,
+                               lambda_cero,
+                               lambda_uno,
+                               lambda_dos)
+
+# Gráficos de dispersión para la transformación de Box-Cox de la población y
+# el año, usando distintos valores de lambda.
+gt1 <- ggscatter(transformaciones,
+                 x = "Year",
+                 y = "lambda_menos_dos",
+                 color = "purple",
+                 xlab = "Año",
+                 ylab = "lambda = -2") + rotate_x_text(45)
+
+gt2 <- ggscatter(transformaciones,
+                 x = "Year",
+                 y = "lambda_menos_uno",
+                 color = "purple",
+                 xlab = "Año",
+                 ylab = "lambda = -1") + rotate_x_text (45)
+
+gt3 <- ggscatter(transformaciones,
+                 x = "Year",
+                 y = "lambda_cero",
+                 color = "purple",
+                 xlab = "Año",
+                 ylab = "lambda = 0") + rotate_x_text (45)
+
+gt4 <- ggscatter(transformaciones,
+                 x = "Year",
+                 y = "lambda_uno",
+                 color = "purple",
+                 xlab = "Año",
+                 ylab = "lambda = 1") + rotate_x_text (45)
+
+gt5 <- ggscatter(transformaciones,
+                 x = "Year",
+                 y = "lambda_dos",
+                 color = "purple",
+                 xlab = "Año",
+                 ylab = "lambda = 2") + rotate_x_text (45)
+
+# Crear una única figura con todos los gráficos de dispersión.
+dispersion <- ggarrange (gt1, gt2, gt3, gt4, gt5, ncol = 3, nrow = 2)
+texto <- "Población transformada por año"
+titulo <- text_grob(texto, face = "bold", size = 14)
+dispersion <- annotate_figure(dispersion, top = titulo)
+print(dispersion)
+
+# Buscar la mejor transformación Box -Cox usando funciones de R.
+lambda <- BoxCoxLambda(datos$Population, lower = -4, up = 4)
+cat("Lambda óptimo:", lambda)
+transformacion <- BoxCox(datos$Population, lambda)
+datos <- data.frame(datos, transformacion)
+
+# Graficar los datos transformados.
+g1 <- ggqqplot (transformacion,
+                color = "purple")
+print(g1)
+
+g2 <- gghistogram(datos,
+                  bins = 10,
+                  x = "transformacion",
+                  color = "purple",
+                  fill = "purple",
+                  xlab = "Población (Box-Cox)",
+                  ylab = "Frecuencia") + rotate_x_text (45)
+print (g2)
+
+# Gráfico de dispersión para la transformación de Box-Cox de la población y
+# el año, usando lambda optimo.
+g3 <- ggscatter(datos,
+                x = "Year",
+                y = "transformacion",
+                color = "purple",
+                xlab = "Año",
+                ylab = "lambda óptimo") + rotate_x_text(45)
+print(g3)
+```
+
+
+===============================================================================================================
+LECTURA 9
+===============================================================================================================
+
+```{r Resultado de la prueba de Wilcoxon-Mann-Whitney para el ejemplo}
+# Ingresar los datos.
+Interfaz_A <- c(2.7, 6.6, 1.6, 5.1, 3.7, 6.1, 5.0, 1.4, 1.8, 1.5, 3.0, 5.3)
+Interfaz_B <- c(5.0, 1.4, 5.6, 4.6, 6.7, 2.7, 1.3, 6.3, 3.7, 1.3 , 6.8)
+
+# Establecer nivel de significación.
+alfa <- 0.05
+
+# Hacer la prueba de Mann-Whitney.
+prueba <- wilcox.test(Interfaz_A, Interfaz_B, alternative = "two.sided",
+                      conf.level = 1 - alfa)
+print(prueba)
+```
+
+
+```{r Prueba de rangos con signo de Wilcoxon para el ejemplo}
+# Ingresar los datos.
+Interfaz_A <- c(2.9, 6.1, 6.7, 4.7, 6.4, 5.7, 2.7, 6.9, 1.7, 6.4)
+Interfaz_B <- c(6.0, 2.8, 1.3, 4.7, 3.1, 1.8, 2.9, 4.0, 2.3, 1.6)
+
+# Establecer nivel de significación.
+alfa <- 0.05
+
+# Hacer la prueba de rangos con signo de Wilcoxon.
+prueba <- wilcox.test(Interfaz_A, Interfaz_B, paired = TRUE,
+                      alternative = "greater", conf.level = 1 - alfa)
+print(prueba)
+```
+
+===============================================================================================================
+LECTURA 10
+===============================================================================================================
+
+
+```{r Prueba de Kruskal-Wallis y el procedimiento post-hoc de Holm para el ejemplo}
+# Construir la mariz de datos.
+A <- c(24, 23, 26, 21, 24, 24, 25, 22, 23, 22, 23, 23)
+B <- c(17, 15, 18, 20, 19, 21, 20, 18, 19)
+C <- c(10, 11, 14, 11, 15, 12, 12, 10, 9, 13, 12, 12, 10, 10)
+D <- c(18, 16, 18, 15, 16, 15, 18, 16)
+Tiempo <- c(A, B, C, D)
+
+Criterio <- c(rep("A", length(A)),
+              rep("B", length(B)),
+              rep("C", length(C)),
+              rep("D", length(D)))
+
+Criterio <- factor(Criterio)
+
+datos <- data.frame(Tiempo, Criterio)
+
+# Establecer nivel de significación
+alfa <- 0.01
+# Hacer la prueba de Kruskal-Wallis.
+prueba <- kruskal.test(Tiempo ~ Criterio, data = datos)
+print (prueba)
+
+# Efectuar procedimiento post-hoc de Benjamini & Hochberg
+# si se encuentran diferencias significativas.
+if(prueba[["p.value"]] < alfa) {
+  post_hoc <- pairwise.wilcox.test(datos[["Tiempo"]],
+                                   datos[["Criterio"]],
+                                   p.adjust.method = "BH",
+                                   paired = FALSE,
+                                   exact = FALSE)
+  print(post_hoc)
+}
+```
+
+
+```{r Prueba de Friedman y el procedimiento post-hoc de Holm para el ejemplo}
+# Construir la matriz de datos.
+A <- c(21, 10, 7, 21, 24, 27, 17)
+B <- c(6, 21, 18, 7, 24, 13, 13)
+C <- c(13, 25, 18, 20, 24, 8, 29)
+
+Puntuacion <- c(A, B, C)
+
+Interfaz <- c(rep("A", length(A)),
+              rep("B", length(B)),
+              rep("C", length(C)))
+
+Caso <- rep(1:7, 3)
+
+Interfaz <- factor(Interfaz)
+
+datos <- data.frame(Caso, Puntuacion, Interfaz)
+
+# Establecer nivel de significación
+alfa <- 0.05
+
+# Hacer la prueba de Friedman.
+prueba <- friedman.test(Puntuacion ~ Interfaz | Caso, data = datos)
+print(prueba)
+
+# Efectuar procedimiento post-hoc de Holm si se encuentran diferencias
+# significativas o por fines académicos.
+fines_académicos <- TRUE
+
+if(prueba$p.value < alfa || fines_académicos) {
+  post_hoc <- pairwise.wilcox.test(datos$Puntuacion,
+                                   datos$Interfaz,
+                                   p.adjust.method = "holm",
+                                   paired = TRUE,
+                                   exact = FALSE)
+  print(post_hoc)
+}
 
 ```
